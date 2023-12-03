@@ -1,5 +1,11 @@
-import Data.Char (digitToInt, isDigit, toLower)
+import Data.Char (digitToInt, isDigit)
 import Data.Maybe qualified
+
+main :: IO ()
+main = do
+  document <- readFile "day1/day1_input.txt"
+  let documentLines = lines $ convertWordsToDigits document
+  print (getCalibrationSum documentLines)
 
 wordDigit :: [(String, String)]
 wordDigit =
@@ -16,10 +22,10 @@ wordDigit =
 
 -- convert a spelled-out number to a digit using the dictionar
 wordToDigit :: String -> String
-wordToDigit input = Data.Maybe.fromMaybe input (lookup (map toLower input) wordDigit)
+wordToDigit input = Data.Maybe.fromMaybe input (lookup input wordDigit)
 
 -- idea of algorithm to replace... look for ones, then look for threes, then look for fours and so on
--- replace each of those occurences with the digit using letterToNum
+-- replace each of those occurences with the digit using wordToDigit
 convertWordsToDigits :: String -> String
 convertWordsToDigits [] = []
 convertWordsToDigits (x : xs)
@@ -42,9 +48,3 @@ getCalibrationVal xs = digitToInt (head digits) * 10 + digitToInt (last digits)
 
 getCalibrationSum :: [String] -> Int
 getCalibrationSum = sum . map getCalibrationVal
-
-main :: IO ()
-main = do
-  document <- readFile "day1/day1_input.txt"
-  let documentLines = lines $ convertWordsToDigits document
-  print (getCalibrationSum documentLines)
