@@ -80,9 +80,11 @@ fn main() {
     }
 
     let sum_gear_ratios = gear_numbers
-        .iter()
-        .filter(|(_, v)| v.len() == 2)
-        .map(|(_, v)| v[0] * v[1])
+        .values()
+        .filter_map(|v| match **v {
+            [a, b] => Some(a * b),
+            _ => None,
+        })
         .sum::<u32>();
 
     println!("Part 1: {}", part_num_sum);
