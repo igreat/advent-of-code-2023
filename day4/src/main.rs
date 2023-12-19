@@ -8,8 +8,8 @@ fn main() {
 
     // --- PART 1 ---
     let mut total_points = 0;
-    for line in lines.clone() {
-        let line = line.split_once(':').unwrap().1.trim();
+    for line in lines {
+        let line = line.split_once(':').unwrap().1;
         let (card_nums, my_nums) = line.split_once('|').unwrap();
         let my_nums: HashSet<u32> = my_nums
             .split_whitespace()
@@ -24,22 +24,21 @@ fn main() {
         let num_matches = card_nums.intersection(&my_nums).count() as u32;
         matches_per_card.push(num_matches);
         if num_matches != 0 {
-            total_points += (2 as u32).pow(num_matches - 1);
+            total_points += (2u32).pow(num_matches - 1);
         }
     }
 
     // --- PART 2 ---
+    let mut total_copies = 0;
     // num of copies of each card
     let mut copies_per_card = vec![1; matches_per_card.len()];
-
     for (i, &num_matches) in matches_per_card.iter().enumerate() {
-        for _ in 0..copies_per_card[i] {
-            for j in (i + 1)..=(i + num_matches as usize) {
-                copies_per_card[j] += 1;
-            }
+        total_copies += copies_per_card[i];
+        for j in (i + 1)..=(i + num_matches as usize) {
+            copies_per_card[j] += copies_per_card[i];
         }
     }
 
     println!("Part 1: {}", total_points);
-    println!("Part 2: {}", copies_per_card.iter().sum::<usize>());
+    println!("Part 2: {}", total_copies);
 }
