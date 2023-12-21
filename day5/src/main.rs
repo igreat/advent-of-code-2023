@@ -33,38 +33,21 @@ fn main() {
                 .collect()
         })
         .collect();
-
     let min_part1 = get_min_location(&maps, result);
 
     // ### Part 2 ###
-    let seeds = input
-        .split("\n\n")
-        .collect::<Vec<&str>>()
-        .get(0)
-        .unwrap()
-        .split_once(':')
-        .unwrap()
-        .1
+    let mut lines = input.lines();
+    let seed_ranges: Vec<(i64, i64)> = lines.next().unwrap()[7..]
         .split_whitespace()
-        .filter_map(|x| x.parse::<i64>().ok());
-
-    let seed_ranges: Vec<(i64, i64)> = seeds
-        .clone()
+        .filter_map(|x| x.parse::<i64>().ok())
         .collect::<Vec<i64>>()
         .chunks(2)
         .map(|chunk| (chunk[0], chunk[1] + chunk[0]))
         .collect();
 
-    let mut result_ranges = Vec::new();
-    for range in seed_ranges {
-        let mut current_ranges = vec![range];
-        for map in &maps {
-            current_ranges = current_ranges
-                .iter()
-                .flat_map(|range| get_result_ranges(map, *range))
-                .collect();
-        }
-        result_ranges.extend(current_ranges);
+    let mut result_ranges = seed_ranges;
+    for map in &maps {
+        result_ranges = get_result_ranges(map, result_ranges);
     }
 
     let min_part2 = result_ranges.iter().map(|(start, _)| *start).min().unwrap();
@@ -88,49 +71,52 @@ fn get_min_location(maps: &Vec<Vec<(i64, i64, i64)>>, mut result: Vec<i64>) -> i
     *result.iter().min().unwrap()
 }
 
-fn get_result_ranges(map: &[(i64, i64, i64)], range: (i64, i64)) -> Vec<(i64, i64)> {
-    let mut remaining_ranges = vec![range];
+fn get_result_ranges(map: &[(i64, i64, i64)], ranges: Vec<(i64, i64)>) -> Vec<(i64, i64)> {
+    let mut remaining_ranges = ranges;
     let mut result_ranges = Vec::new();
+    let mut new_remaining_ranges = Vec::new();
 
     for &(dest_num, source_num, num_values) in map {
-        let mut new_remaining_ranges = Vec::new();
+        let source_end = source_num + num_values - 1;
+
         for &range in &remaining_ranges {
             let (start, end) = range;
-            let source_end = source_num + num_values - 1;
 
-            // case 1: Both start and end are within the range
-            if (start >= source_num && start <= source_end)
-                && (end >= source_num && end <= source_end)
-            {
-                result_ranges.push((dest_num + start - source_num, dest_num + end - source_num));
-            }
-            // case 2: Start is within the range, end is after the range
-            else if start >= source_num && start <= source_end && end > source_end {
-                result_ranges.push((dest_num + start - source_num, dest_num + num_values - 1));
-                new_remaining_ranges.push((source_end + 1, end));
-            }
-            // case 3: Start is before the range, end is within the range
-            else if start < source_num && (end >= source_num && end <= source_end) {
-                new_remaining_ranges.push((start, source_num - 1));
-                result_ranges.push((dest_num, dest_num + end - source_num));
-            }
-            // case 4: Both start and end are before the range
-            else if end < source_num && start < source_num {
-                new_remaining_ranges.push(range);
-            }
-            // case 5: Both start and end are after the range
-            else if start > source_end && end > source_end {
-                new_remaining_ranges.push(range);
-            }
-            // case 6: Start is before the range, end is after the range
-            else if start < source_num && end > source_end {
-                new_remaining_ranges.push((start, source_num - 1));
-                result_ranges.push((dest_num, dest_num + num_values - 1));
-                new_remaining_ranges.push((source_end + 1, end));
+            let start_in_range = start >= source_num && start <= source_end;
+            let end_in_range = end >= source_num && end <= source_end;
+
+            match (start_in_range, end_in_range) {
+                (true, true) => {
+                    result_ranges
+                        .push((dest_num + start - source_num, dest_num + end - source_num));
+                }
+                (true, false) => {
+                    result_ranges.push((dest_num + start - source_num, dest_num + num_values - 1));
+                    new_remaining_ranges.push((source_end + 1, end));
+                }
+                (false, true) => {
+                    new_remaining_ranges.push((start, source_num - 1));
+                    result_ranges.push((dest_num, dest_num + end - source_num));
+                }
+                _ => {
+                    // both completely before or after
+                    if end < source_num || start > source_end {
+                        new_remaining_ranges.push(range);
+                    } else {
+                        // encapsulates the whole valid range inside
+                        // start < source_num && end > source_end
+                        new_remaining_ranges.push((start, source_num - 1));
+                        result_ranges.push((dest_num, dest_num + num_values - 1));
+                        new_remaining_ranges.push((source_end + 1, end));
+                    }
+                }
             }
         }
-        remaining_ranges = new_remaining_ranges;
+
+        std::mem::swap(&mut remaining_ranges, &mut new_remaining_ranges);
+        new_remaining_ranges.clear();
     }
+
     result_ranges.extend(remaining_ranges);
 
     result_ranges
@@ -143,8 +129,8 @@ mod tests {
     #[test]
     fn test_get_result_ranges() {
         let map = vec![(49, 53, 8), (0, 11, 42), (42, 0, 7), (57, 7, 4)];
-        let range = (57, 70);
-        let result = get_result_ranges(&map, range);
+        let ranges = vec![(57, 70)];
+        let result = get_result_ranges(&map, ranges);
         assert_eq!(result, vec![(53, 56), (61, 70)]);
     }
 }
