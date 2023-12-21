@@ -89,43 +89,49 @@ fn get_min_location(maps: &Vec<Vec<(i64, i64, i64)>>, mut result: Vec<i64>) -> i
 }
 
 fn get_result_ranges(map: &[(i64, i64, i64)], range: (i64, i64)) -> Vec<(i64, i64)> {
-    if map.is_empty() {
-        return vec![range];
-    }
-
-    let (start, end) = range;
+    let mut remaining_ranges = vec![range];
     let mut result_ranges = Vec::new();
-    let (dest_num, source_num, num_values) = map[0];
-    let source_end = source_num + num_values - 1;
 
-    // case 1: Both start and end are within the range
-    if (start >= source_num && start <= source_end) && (end >= source_num && end <= source_end) {
-        result_ranges.push((dest_num + start - source_num, dest_num + end - source_num));
+    for &(dest_num, source_num, num_values) in map {
+        let mut new_remaining_ranges = Vec::new();
+        for &range in &remaining_ranges {
+            let (start, end) = range;
+            let source_end = source_num + num_values - 1;
+
+            // case 1: Both start and end are within the range
+            if (start >= source_num && start <= source_end)
+                && (end >= source_num && end <= source_end)
+            {
+                result_ranges.push((dest_num + start - source_num, dest_num + end - source_num));
+            }
+            // case 2: Start is within the range, end is after the range
+            else if start >= source_num && start <= source_end && end > source_end {
+                result_ranges.push((dest_num + start - source_num, dest_num + num_values - 1));
+                new_remaining_ranges.push((source_end + 1, end));
+            }
+            // case 3: Start is before the range, end is within the range
+            else if start < source_num && (end >= source_num && end <= source_end) {
+                new_remaining_ranges.push((start, source_num - 1));
+                result_ranges.push((dest_num, dest_num + end - source_num));
+            }
+            // case 4: Both start and end are before the range
+            else if end < source_num && start < source_num {
+                new_remaining_ranges.push(range);
+            }
+            // case 5: Both start and end are after the range
+            else if start > source_end && end > source_end {
+                new_remaining_ranges.push(range);
+            }
+            // case 6: Start is before the range, end is after the range
+            else if start < source_num && end > source_end {
+                new_remaining_ranges.push((start, source_num - 1));
+                result_ranges.push((dest_num, dest_num + num_values - 1));
+                new_remaining_ranges.push((source_end + 1, end));
+            }
+        }
+        remaining_ranges = new_remaining_ranges;
     }
-    // case 2: Start is within the range, end is after the range
-    else if start >= source_num && start <= source_end && end > source_end {
-        result_ranges.push((dest_num + start - source_num, dest_num + num_values - 1));
-        result_ranges.extend(get_result_ranges(&map[1..], (source_end + 1, end)));
-    }
-    // case 3: Start is before the range, end is within the range
-    else if start < source_num && (end >= source_num && end <= source_end) {
-        result_ranges.extend(get_result_ranges(&map[1..], (start, source_num - 1)));
-        result_ranges.push((dest_num, dest_num + end - source_num));
-    }
-    // case 4: Both start and end are before the range
-    else if end < source_num && start < source_num {
-        result_ranges.extend(get_result_ranges(&map[1..], range));
-    }
-    // case 5: Both start and end are after the range
-    else if start > source_end && end > source_end {
-        result_ranges.extend(get_result_ranges(&map[1..], range));
-    }
-    // case 6: Start is before the range, end is after the range
-    else if start < source_num && end > source_end {
-        result_ranges.extend(get_result_ranges(&map[1..], (start, source_num - 1)));
-        result_ranges.push((dest_num, dest_num + num_values - 1));
-        result_ranges.extend(get_result_ranges(&map[1..], (source_end + 1, end)));
-    }
+    result_ranges.extend(remaining_ranges);
 
     result_ranges
 }
