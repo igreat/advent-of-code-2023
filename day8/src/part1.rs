@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug)]
 enum Move {
@@ -22,7 +22,7 @@ pub fn part1() {
         .collect();
 
     lines.next();
-    let nodes: HashMap<&[u8], (&[u8], &[u8])> = lines
+    let nodes: FxHashMap<&[u8], (&[u8], &[u8])> = lines
         .map(|line| {
             let bytes = line.as_bytes();
             (&bytes[..3], (&bytes[7..10], &bytes[12..15]))

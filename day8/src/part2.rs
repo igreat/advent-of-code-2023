@@ -1,5 +1,4 @@
-// get gcd
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 #[derive(Debug)]
 enum Move {
@@ -24,7 +23,7 @@ pub fn part2() {
 
     lines.next();
     let mut current_nodes = Vec::new();
-    let mut nodes = HashMap::new();
+    let mut nodes = FxHashMap::default();
     for line in lines {
         let bytes = line.as_bytes();
         if &bytes[2] == &b'A' {
