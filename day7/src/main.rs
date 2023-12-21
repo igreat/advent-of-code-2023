@@ -17,24 +17,18 @@ enum HandType {
     FiveOfAKind,
 }
 
-fn strength(letter: char) -> u32 {
+fn strength(letter: u8) -> u8 {
     match letter {
-        'A' => 12,
-        'K' => 11,
-        'Q' => 10,
-        'J' => 9,
-        'T' => 8,
-        '9' => 7,
-        '8' => 6,
-        '7' => 5,
-        '6' => 4,
-        '5' => 3,
-        '4' => 2,
-        '3' => 1,
-        '2' => 0,
+        b'2'..=b'9' => letter - b'0',
+        b'A' => 14,
+        b'K' => 13,
+        b'Q' => 12,
+        b'J' => 11,
+        b'T' => 10,
         _ => panic!("Invalid letter"),
     }
 }
+
 #[derive(Debug, PartialEq, PartialOrd, Eq)]
 struct Hand {
     id: String,
@@ -45,7 +39,7 @@ struct Hand {
 impl Hand {
     fn new(id: &str, bid: u32) -> Hand {
         let mut cards = HashMap::new();
-        for card in id.chars() {
+        for card in id.as_bytes() {
             *cards.entry(card).or_insert(0) += 1;
         }
 
@@ -83,7 +77,7 @@ impl Ord for Hand {
             Ordering::Greater => Ordering::Greater,
             Ordering::Less => Ordering::Less,
             Ordering::Equal => {
-                for (s, o) in self.id.chars().zip(other.id.chars()) {
+                for (&s, &o) in self.id.as_bytes().iter().zip(other.id.as_bytes().iter()) {
                     if s != o {
                         if strength(s) > strength(o) {
                             return Ordering::Greater;
