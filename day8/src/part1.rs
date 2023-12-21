@@ -22,13 +22,16 @@ pub fn part1() {
         .collect();
 
     lines.next();
-    let nodes: HashMap<&str, (&str, &str)> = lines
-        .map(|line| (&line[..3], (&line[7..10], &line[12..15])))
+    let nodes: HashMap<&[u8], (&[u8], &[u8])> = lines
+        .map(|line| {
+            let bytes = line.as_bytes();
+            (&bytes[..3], (&bytes[7..10], &bytes[12..15]))
+        })
         .collect();
 
-    let mut current_node = "AAA";
-
-    let mut num_steps = 0;
+    let mut current_node = "AAA".as_bytes();
+    let target_node = "ZZZ".as_bytes();
+    let mut num_steps: usize = 0;
     'outer: loop {
         for m in &moves {
             num_steps += 1;
@@ -37,7 +40,7 @@ pub fn part1() {
                 Move::Right => current_node = r,
                 Move::Left => current_node = l,
             }
-            if current_node == "ZZZ" {
+            if current_node == target_node {
                 break 'outer;
             }
         }
