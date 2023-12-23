@@ -14,32 +14,19 @@ pub fn run(input: &str) -> u32 {
     traverse(&mut grid, (1, 0), 0)
 }
 
-static mut MAX_LENGTH: u32 = 0;
 fn traverse(grid: &mut Vec<Vec<Cell>>, start: (isize, isize), prev_length: u32) -> u32 {
-    if start.0 == grid[0].len() as isize - 2 && start.1 == grid.len() as isize - 1 {
-        if prev_length > unsafe { MAX_LENGTH } {
-            unsafe {
-                MAX_LENGTH = prev_length;
-                println!("max length: {}", MAX_LENGTH);
-            }
-        }
-        return prev_length;
-    }
-
     let mut current;
     let mut temp_current;
     let mut length = prev_length;
     let mut valid_moves = Vec::new();
+    let mut grid_copy;
+    let mut current_copy;
+    let mut length_copy;
+
     current = start;
     loop {
         // check for end here as well
         if current.0 == grid[0].len() as isize - 2 && current.1 == grid.len() as isize - 1 {
-            if length > unsafe { MAX_LENGTH } {
-                unsafe {
-                    MAX_LENGTH = length;
-                    println!("max length: {}", MAX_LENGTH);
-                }
-            }
             return length;
         }
 
@@ -76,20 +63,20 @@ fn traverse(grid: &mut Vec<Vec<Cell>>, start: (isize, isize), prev_length: u32) 
             length += 1;
             grid[current.1 as usize][current.0 as usize] = Cell::Visited;
         } else {
-            let mut max_length = length;
+            let mut max_length = 0;
             for direction in valid_moves {
-                let mut grid_copy = grid.clone();
-                let mut current_copy = current;
-                let mut length_copy = length;
+                grid_copy = grid.clone();
+                current_copy = current;
+                length_copy = length;
 
                 current_copy.0 += direction.0;
                 current_copy.1 += direction.1;
                 length_copy += 1;
                 grid_copy[current_copy.1 as usize][current_copy.0 as usize] = Cell::Visited;
 
-                let result = traverse(&mut grid_copy, current_copy, length_copy);
-                if result > max_length {
-                    max_length = result;
+                let path_len = traverse(&mut grid_copy, current_copy, length_copy);
+                if path_len > max_length {
+                    max_length = path_len;
                 }
             }
             return max_length;
@@ -117,9 +104,9 @@ fn print_grid(grid: &Vec<Vec<Cell>>) {
     for row in grid {
         for cell in row {
             match cell {
-                Cell::Path => print!(" "),
-                Cell::Forest => print!("{}", "#".black()),
-                Cell::Visited => print!("{}", "*".red()),
+                Cell::Path => print!("{}", "█".white().on_white()),
+                Cell::Forest => print!("{}", "█".black()),
+                Cell::Visited => print!("{}", "█".red()),
             }
         }
         println!();

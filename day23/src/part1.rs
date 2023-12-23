@@ -18,18 +18,19 @@ pub fn run(input: &str) -> u32 {
 }
 
 fn traverse(grid: &mut Vec<Vec<Cell>>, start: (isize, isize), prev_length: u32) -> u32 {
-    if start.0 == grid[0].len() as isize - 2 && start.1 == grid.len() as isize - 1 {
-        return prev_length;
-    }
-
     let mut current;
     let mut temp_current;
     let mut length = prev_length;
     let mut valid_moves = Vec::new();
+    let mut grid_copy;
+    let mut current_copy;
+    let mut length_copy;
+
     current = start;
     loop {
         // check for end here as well
         if current.0 == grid[0].len() as isize - 2 && current.1 == grid.len() as isize - 1 {
+            print_grid(&grid);
             return length;
         }
 
@@ -129,11 +130,11 @@ fn traverse(grid: &mut Vec<Vec<Cell>>, start: (isize, isize), prev_length: u32) 
                 grid[current.1 as usize][current.0 as usize] = Cell::Visited;
             }
         } else {
-            let mut max_length = length;
+            let mut max_length = 0;
             for direction in valid_moves {
-                let mut grid_copy = grid.clone();
-                let mut current_copy = current;
-                let mut length_copy = length;
+                grid_copy = grid.clone();
+                current_copy = current;
+                length_copy = length;
 
                 for _ in 0..direction.0.abs() {
                     current_copy.0 += direction.0.signum();
@@ -181,12 +182,12 @@ fn print_grid(grid: &Vec<Vec<Cell>>) {
     for row in grid {
         for cell in row {
             match cell {
-                Cell::Path => print!(" "),
-                Cell::Forest => print!("{}", "#".black()),
-                Cell::LeftSlope => print!("<"),
-                Cell::RightSlope => print!(">"),
-                Cell::UpSlope => print!("^"),
-                Cell::DownSlope => print!("v"),
+                Cell::Path => print!("{}", " ".black()),
+                Cell::Forest => print!("{}", "#".green()),
+                Cell::LeftSlope => print!("{}", "<".blue()),
+                Cell::RightSlope => print!("{}", ">".blue()),
+                Cell::UpSlope => print!("{}", "^".blue()),
+                Cell::DownSlope => print!("{}", "v".blue()),
                 Cell::Visited => print!("{}", "*".red()),
             }
         }
