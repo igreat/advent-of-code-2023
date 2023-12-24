@@ -147,9 +147,9 @@ fn traverse(grid: &mut Vec<Vec<Cell>>, start: (isize, isize), prev_length: u32) 
                     grid_copy[current_copy.1 as usize][current_copy.0 as usize] = Cell::Visited;
                 }
 
-                let result = traverse(&mut grid_copy, current_copy, length_copy);
-                if result > max_length {
-                    max_length = result;
+                let path_len = traverse(&mut grid_copy, current_copy, length_copy);
+                if path_len > max_length {
+                    max_length = path_len;
                 }
             }
             return max_length;
