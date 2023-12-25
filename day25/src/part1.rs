@@ -28,7 +28,7 @@ pub fn run(input: &str) -> usize {
             cluster_counter.clone(),
             &mut rng,
         );
-        if total_edges == 6 {
+        if total_edges <= 6 {
             return cut.0 * cut.1;
         }
     }
@@ -115,21 +115,21 @@ fn contract<'a>(
             .nth(rng.gen_range(0..super_edges.len()))
             .unwrap();
 
-        merge_nodes(super_nodes, super_edges, cluster_counter, node1, node2);
+        cluster_counter.insert(node1, cluster_counter[node1] + cluster_counter[node2]);
+        merge_nodes(super_nodes, super_edges, node1, node2);
     }
 }
 
 fn merge_nodes<'a>(
     super_nodes: &mut HashSet<&'a str>,
     super_edges: &mut HashMap<(&'a str, &'a str), usize>,
-    cluster_counter: &mut HashMap<&'a str, usize>,
     node1: &'a str,
     node2: &'a str,
 ) {
     super_nodes.remove(node2);
     super_edges.remove(&(node1, node2)).unwrap();
     super_edges.remove(&(node2, node1));
-    cluster_counter.insert(node1, cluster_counter[node1] + cluster_counter[node2]);
+
     for &node in super_nodes.iter() {
         if super_edges.contains_key(&(node, node2)) {
             let w1 = super_edges.remove(&(node, node2)).unwrap();
