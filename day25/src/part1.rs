@@ -7,14 +7,13 @@ use std::io::Write;
 
 pub fn run(input: &str) -> usize {
     let graph = parse_graph(input);
-
     // solve_brute_force(graph.clone())
 
     let nodes = graph.keys().cloned().collect::<HashSet<&str>>();
-    let mut edges = HashSet::new();
+    let mut edges = HashMap::new();
     for (node, neighbors) in &graph {
         for neighbor in neighbors {
-            edges.insert((*node, *neighbor));
+            edges.insert((*node, *neighbor), 1usize);
         }
     }
     let mut cluster_counter = HashMap::new();
@@ -22,75 +21,132 @@ pub fn run(input: &str) -> usize {
         cluster_counter.insert(*node, 1);
     }
     let mut rng = rand::thread_rng();
-    let mut min_diff = std::usize::MAX;
-    let mut best_cut = (0, 0);
-    for _ in 0..100 {
-        let result = solve_randomized_search(
+    loop {
+        let (cut, total_edges) = solve_randomized_search(
             nodes.clone(),
             edges.clone(),
             cluster_counter.clone(),
             &mut rng,
         );
-        let diff = (result.0 as isize - result.1 as isize).abs() as usize;
-        if diff < min_diff {
-            min_diff = diff;
-            best_cut = result;
+        if total_edges == 6 {
+            return cut.0 * cut.1;
         }
     }
-    best_cut.0 * best_cut.1
 }
 
 fn solve_randomized_search<'a>(
     mut super_nodes: HashSet<&'a str>,
-    mut super_edges: HashSet<(&'a str, &'a str)>,
+    mut super_edges: HashMap<(&'a str, &'a str), usize>,
     mut cluster_counter: HashMap<&'a str, usize>,
     rng: &mut rand::rngs::ThreadRng,
-) -> (usize, usize) {
-    while super_nodes.len() > 2 {
-        let (node1, node2) = *super_edges
+) -> ((usize, usize), usize) {
+    if super_nodes.len() <= 6 {
+        contract(
+            &mut super_nodes,
+            &mut super_edges,
+            &mut cluster_counter,
+            rng,
+            2,
+        );
+    } else {
+        let t = (1.0 + (super_nodes.len() as f64 / 2.0).ceil()) as usize;
+        // make two clones of the graph
+        let mut super_nodes1 = super_nodes.clone();
+        let mut super_edges1 = super_edges.clone();
+        let mut cluster_counter1 = cluster_counter.clone();
+        let mut super_nodes2 = super_nodes.clone();
+        let mut super_edges2 = super_edges.clone();
+        let mut cluster_counter2 = cluster_counter.clone();
+
+        // contract the first graph
+        contract(
+            &mut super_nodes1,
+            &mut super_edges1,
+            &mut cluster_counter1,
+            rng,
+            t,
+        );
+        // contract the second graph
+        contract(
+            &mut super_nodes2,
+            &mut super_edges2,
+            &mut cluster_counter2,
+            rng,
+            t,
+        );
+
+        // solve the two subproblems
+        let result1 = solve_randomized_search(super_nodes1, super_edges1, cluster_counter1, rng);
+        let result2 = solve_randomized_search(super_nodes2, super_edges2, cluster_counter2, rng);
+
+        // return the best result (one with least difference)
+        if result1.1 < result2.1 {
+            return result1;
+        } else {
+            return result2;
+        }
+    }
+
+    // sum of the weights of the edges between in the edges
+    let mut sum = 0;
+    for ((node1, node2), weight) in super_edges.iter() {
+        if cluster_counter[node1] != cluster_counter[node2] {
+            sum += weight;
+        }
+    }
+
+    // the two super nodes cluster sizes
+    let mut iter = super_nodes.iter();
+    let node1 = iter.next().unwrap();
+    let node2 = iter.next().unwrap();
+    ((cluster_counter[node1], cluster_counter[node2]), sum)
+}
+
+fn contract<'a>(
+    super_nodes: &mut HashSet<&'a str>,
+    super_edges: &mut HashMap<(&'a str, &'a str), usize>,
+    cluster_counter: &mut HashMap<&'a str, usize>,
+    rng: &mut rand::rngs::ThreadRng,
+    num_nodes: usize,
+) {
+    while super_nodes.len() > num_nodes {
+        let (&(node1, node2), _) = super_edges
             .iter()
             .nth(rng.gen_range(0..super_edges.len()))
             .unwrap();
 
-        merge_nodes(
-            &mut super_nodes,
-            &mut super_edges,
-            &mut cluster_counter,
-            node1,
-            node2,
-        );
+        merge_nodes(super_nodes, super_edges, cluster_counter, node1, node2);
     }
-
-    // return the two super nodes cluster sizes
-    let mut iter = super_nodes.iter();
-    let node1 = iter.next().unwrap();
-    let node2 = iter.next().unwrap();
-    (cluster_counter[node1], cluster_counter[node2])
 }
 
 fn merge_nodes<'a>(
     super_nodes: &mut HashSet<&'a str>,
-    super_edges: &mut HashSet<(&'a str, &'a str)>,
+    super_edges: &mut HashMap<(&'a str, &'a str), usize>,
     cluster_counter: &mut HashMap<&'a str, usize>,
     node1: &'a str,
     node2: &'a str,
 ) {
     super_nodes.remove(node2);
-    super_edges.remove(&(node1, node2));
+    super_edges.remove(&(node1, node2)).unwrap();
     super_edges.remove(&(node2, node1));
     cluster_counter.insert(node1, cluster_counter[node1] + cluster_counter[node2]);
     for &node in super_nodes.iter() {
-        if super_edges.contains(&(node, node2)) {
-            super_edges.remove(&(node, node2));
+        if super_edges.contains_key(&(node, node2)) {
+            let w1 = super_edges.remove(&(node, node2)).unwrap();
             super_edges.remove(&(node2, node));
-            if !super_edges.contains(&(node, node1)) {
-                super_edges.insert((node, node1));
-                super_edges.insert((node1, node));
+            if !super_edges.contains_key(&(node, node1)) {
+                super_edges.insert((node, node1), w1);
+                super_edges.insert((node1, node), w1);
+            } else {
+                let w2 = *super_edges.get(&(node, node1)).unwrap();
+                super_edges.insert((node, node1), w1 + w2);
+                super_edges.insert((node1, node), w1 + w2);
             }
         }
     }
 }
 
+// doesn't work on a large input will take forever
 fn solve_brute_force(graph: HashMap<&str, HashSet<&str>>) -> usize {
     let mut edges: Vec<(&str, &str)> = Vec::new();
     for (node, neighbors) in &graph {
