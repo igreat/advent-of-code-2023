@@ -1,5 +1,6 @@
 use rand::{thread_rng, Rng};
 use std::collections::HashMap;
+
 pub fn run(input: &str) -> usize {
     let graph = parse_graph(input);
     let uf = UnionFind::new(graph.len());
@@ -70,23 +71,22 @@ impl UnionFind {
     }
 }
 
-fn karger_min_cut(mut uf: &mut UnionFind, edges: &Vec<(usize, usize)>) -> (usize, usize) {
-    // println!("cluster_count: {}", cluster_count);
-    if uf.num_clusters < 6 {
-        contract(&mut uf, &edges, 2);
+fn karger_min_cut(uf: &mut UnionFind, edges: &Vec<(usize, usize)>) -> (usize, usize) {
+    if uf.num_clusters < 12 {
+        contract(uf, edges, 2);
     } else {
         let t = (1.0 + uf.num_clusters as f64 / 2.0).ceil() as usize;
 
         let mut uf_copy = uf.clone();
 
-        contract(&mut uf, &edges, t);
-        let (min_cut1, size1) = karger_min_cut(&mut uf, edges);
+        contract(&mut uf_copy, edges, t);
+        let (min_cut1, size1) = karger_min_cut(&mut uf_copy, edges);
         if min_cut1 == 3 {
             return (min_cut1, size1);
         }
 
-        contract(&mut uf_copy, &edges, t);
-        let (min_cut2, size2) = karger_min_cut(&mut uf_copy, edges);
+        contract(uf, edges, t);
+        let (min_cut2, size2) = karger_min_cut(uf, edges);
 
         if min_cut1 < min_cut2 {
             return (min_cut1, size1);
