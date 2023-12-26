@@ -1,9 +1,7 @@
 use rand::Rng;
 use std::collections::HashMap;
-use std::time::Instant;
 
 pub fn run(input: &str) -> usize {
-    let start = Instant::now();
     let graph = parse_graph(input);
     let mut rng = rand::thread_rng();
     let uf = UnionFind::new(graph.len());
@@ -15,13 +13,10 @@ pub fn run(input: &str) -> usize {
             }
         }
     }
-    println!("parse_graph: {:?}", start.elapsed());
 
-    let start = Instant::now();
     loop {
         let (min_cut, size) = karger_min_cut(&mut uf.clone(), &edges, &mut rng);
         if min_cut == 3 {
-            println!("karger_min_cut: {:?}", start.elapsed());
             return (graph.len() - size) * size;
         }
     }
