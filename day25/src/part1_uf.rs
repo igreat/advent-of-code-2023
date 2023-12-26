@@ -1,9 +1,7 @@
-use rand::Rng;
+use rand::{thread_rng, Rng};
 use std::collections::HashMap;
-
 pub fn run(input: &str) -> usize {
     let graph = parse_graph(input);
-    let mut rng = rand::thread_rng();
     let uf = UnionFind::new(graph.len());
     let mut edges = Vec::new();
     for (node, neighbors) in &graph {
@@ -15,7 +13,7 @@ pub fn run(input: &str) -> usize {
     }
 
     loop {
-        let (min_cut, size) = karger_min_cut(&mut uf.clone(), &edges, &mut rng);
+        let (min_cut, size) = karger_min_cut(&mut uf.clone(), &edges);
         if min_cut == 3 {
             return (graph.len() - size) * size;
         }
@@ -72,27 +70,23 @@ impl UnionFind {
     }
 }
 
-fn karger_min_cut(
-    mut uf: &mut UnionFind,
-    edges: &Vec<(usize, usize)>,
-    mut rng: &mut rand::rngs::ThreadRng,
-) -> (usize, usize) {
+fn karger_min_cut(mut uf: &mut UnionFind, edges: &Vec<(usize, usize)>) -> (usize, usize) {
     // println!("cluster_count: {}", cluster_count);
     if uf.num_clusters < 6 {
-        contract(&mut uf, &edges, 2, &mut rng);
+        contract(&mut uf, &edges, 2);
     } else {
         let t = (1.0 + uf.num_clusters as f64 / 2.0).ceil() as usize;
 
         let mut uf_copy = uf.clone();
 
-        contract(&mut uf, &edges, t, &mut rng);
-        let (min_cut1, size1) = karger_min_cut(&mut uf, edges, &mut rng);
+        contract(&mut uf, &edges, t);
+        let (min_cut1, size1) = karger_min_cut(&mut uf, edges);
         if min_cut1 == 3 {
             return (min_cut1, size1);
         }
 
-        contract(&mut uf_copy, &edges, t, &mut rng);
-        let (min_cut2, size2) = karger_min_cut(&mut uf_copy, edges, &mut rng);
+        contract(&mut uf_copy, &edges, t);
+        let (min_cut2, size2) = karger_min_cut(&mut uf_copy, edges);
 
         if min_cut1 < min_cut2 {
             return (min_cut1, size1);
@@ -111,14 +105,9 @@ fn karger_min_cut(
     (min_cut, size)
 }
 
-fn contract(
-    uf: &mut UnionFind,
-    edges: &Vec<(usize, usize)>,
-    num_clusters: usize,
-    rng: &mut rand::rngs::ThreadRng,
-) {
+fn contract(uf: &mut UnionFind, edges: &Vec<(usize, usize)>, num_clusters: usize) {
     while uf.num_clusters > num_clusters {
-        let (node, neighbor) = edges[rng.gen_range(0..edges.len())];
+        let (node, neighbor) = edges[thread_rng().gen_range(0..edges.len())];
         uf.union(node, neighbor);
     }
 }
