@@ -1,20 +1,37 @@
 use rand::Rng;
 use std::collections::HashMap;
+use std::time::Instant;
 
 pub fn run(input: &str) -> usize {
+    let start = Instant::now();
     let graph = parse_graph(input);
-    // println!("graph: {:?}", graph);
+    let mut rng = rand::thread_rng();
+    let uf = UnionFind::new(graph.len());
+    let mut edges = Vec::new();
+    for (node, neighbors) in &graph {
+        for neighbor in neighbors {
+            if *node < *neighbor {
+                edges.push((*node, *neighbor));
+            }
+        }
+    }
+    println!("parse_graph: {:?}", start.elapsed());
+
+    let start = Instant::now();
     loop {
-        let (min_cut, size) = karger_min_cut(&graph);
+        let (min_cut, size) = karger_min_cut(&mut uf.clone(), &edges, &mut rng);
         if min_cut == 3 {
+            println!("karger_min_cut: {:?}", start.elapsed());
             return (graph.len() - size) * size;
         }
     }
 }
 
+#[derive(Clone)]
 pub struct UnionFind {
     parents: Vec<usize>,
     sizes: Vec<usize>,
+    num_clusters: usize,
 }
 
 impl UnionFind {
@@ -22,6 +39,7 @@ impl UnionFind {
         Self {
             sizes: vec![1; size],
             parents: (0..size).collect(),
+            num_clusters: size,
         }
     }
 
@@ -35,13 +53,13 @@ impl UnionFind {
         parent
     }
 
-    pub fn union(&mut self, a: usize, b: usize) -> bool {
+    pub fn union(&mut self, a: usize, b: usize) {
         let x = self.find(a);
         let y = self.find(b);
 
         // A and B are already in the same set -> nothing to do
         if x == y {
-            return false;
+            return;
         }
 
         let x_size = self.sizes[x];
@@ -55,23 +73,38 @@ impl UnionFind {
             self.parents[x] = y;
         }
 
-        true
+        self.num_clusters -= 1;
     }
 }
 
-fn karger_min_cut(graph: &HashMap<usize, Vec<usize>>) -> (usize, usize) {
-    let mut rng = rand::thread_rng();
-    let mut uf = UnionFind::new(graph.len());
-    let mut edges = Vec::new();
-    for (node, neighbors) in graph {
-        for neighbor in neighbors {
-            if *node < *neighbor {
-                edges.push((*node, *neighbor));
-            }
+fn karger_min_cut(
+    mut uf: &mut UnionFind,
+    edges: &Vec<(usize, usize)>,
+    mut rng: &mut rand::rngs::ThreadRng,
+) -> (usize, usize) {
+    // println!("cluster_count: {}", cluster_count);
+    if uf.num_clusters < 6 {
+        contract(&mut uf, &edges, 2, &mut rng);
+    } else {
+        let t = (1.0 + uf.num_clusters as f64 / 2.0).ceil() as usize;
+
+        let mut uf_copy = uf.clone();
+
+        contract(&mut uf, &edges, t, &mut rng);
+        let (min_cut1, size1) = karger_min_cut(&mut uf, edges, &mut rng);
+        if min_cut1 == 3 {
+            return (min_cut1, size1);
+        }
+
+        contract(&mut uf_copy, &edges, t, &mut rng);
+        let (min_cut2, size2) = karger_min_cut(&mut uf_copy, edges, &mut rng);
+
+        if min_cut1 < min_cut2 {
+            return (min_cut1, size1);
+        } else {
+            return (min_cut2, size2);
         }
     }
-
-    contract(&mut uf, &mut edges, 2, &mut rng);
 
     let min_cut = edges
         .iter()
@@ -80,33 +113,18 @@ fn karger_min_cut(graph: &HashMap<usize, Vec<usize>>) -> (usize, usize) {
 
     let root = uf.find(0);
     let size = uf.sizes[root];
-
     (min_cut, size)
 }
 
 fn contract(
     uf: &mut UnionFind,
-    edges: &mut Vec<(usize, usize)>,
+    edges: &Vec<(usize, usize)>,
     num_clusters: usize,
     rng: &mut rand::rngs::ThreadRng,
 ) {
-    let mut n = uf.parents.len();
-    // shuffle the edges
-    for i in 0..edges.len() {
-        let j = rng.gen_range(0..edges.len());
-        edges.swap(i, j);
-    }
-
-    for (node, neighbor) in edges {
-        if n <= num_clusters {
-            break;
-        }
-        let node = uf.find(*node);
-        let neighbor = uf.find(*neighbor);
-        if node != neighbor {
-            uf.union(node, neighbor);
-            n -= 1;
-        }
+    while uf.num_clusters > num_clusters {
+        let (node, neighbor) = edges[rng.gen_range(0..edges.len())];
+        uf.union(node, neighbor);
     }
 }
 
@@ -143,25 +161,3 @@ fn parse_graph(input: &str) -> HashMap<usize, Vec<usize>> {
     }
     graph
 }
-// for line in input.lines() {
-//     let id = &line[..3];
-//     let connections: HashSet<&str> = line[5..].split_whitespace().collect();
-//     // check if the node already exists
-//     if !graph.contains_key(id) {
-//         graph.insert(id, connections.clone());
-//     } else {
-//         graph.get_mut(id).unwrap().extend(connections.clone());
-//     }
-
-//     // add the reverse connections for each edge
-//     for connection in connections {
-//         if !graph.contains_key(connection) {
-//             let mut set = HashSet::new();
-//             set.insert(id);
-//             graph.insert(connection, set);
-//         } else {
-//             graph.get_mut(connection).unwrap().insert(id);
-//         }
-//     }
-// }
-// graph
