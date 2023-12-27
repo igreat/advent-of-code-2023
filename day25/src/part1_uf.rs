@@ -1,9 +1,11 @@
 use rand::{thread_rng, Rng};
+use rayon::prelude::*;
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+use std::sync::Arc;
 
 pub fn run(input: &str) -> usize {
     let graph = parse_graph(input);
-    let uf = UnionFind::new(graph.len());
     let mut edges = Vec::new();
     for (node, neighbors) in &graph {
         for neighbor in neighbors {
@@ -13,12 +15,38 @@ pub fn run(input: &str) -> usize {
         }
     }
 
-    loop {
-        let (min_cut, size) = karger_min_cut(&mut uf.clone(), &edges);
-        if min_cut == 3 {
-            return (graph.len() - size) * size;
-        }
-    }
+    let found = Arc::new(AtomicBool::new(false));
+    let result = Arc::new(AtomicUsize::new(0));
+
+    (0..100000)
+        .into_par_iter()
+        .map_init(
+            || UnionFind::new(graph.len()),
+            |uf, _| {
+                if found.load(Ordering::SeqCst) {
+                    return None;
+                }
+
+                let (min_cut, size) = karger_min_cut(&mut uf.clone(), &edges);
+
+                if min_cut == 3 {
+                    found.store(true, Ordering::SeqCst);
+                    let value = size;
+                    let current_result = result.load(Ordering::SeqCst);
+                    if value < current_result || current_result == 0 {
+                        result.store(value, Ordering::SeqCst);
+                    }
+                    Some(value)
+                } else {
+                    None
+                }
+            },
+        )
+        .filter_map(|x| x)
+        .for_each(|_| {});
+
+    let result = result.load(Ordering::SeqCst);
+    result * (graph.len() - result)
 }
 
 #[derive(Clone)]
@@ -72,28 +100,7 @@ impl UnionFind {
 }
 
 fn karger_min_cut(uf: &mut UnionFind, edges: &Vec<(usize, usize)>) -> (usize, usize) {
-    if uf.num_clusters < 12 {
-        contract(uf, edges, 2);
-    } else {
-        let t = (1.0 + uf.num_clusters as f64 / 2.0).ceil() as usize;
-
-        let mut uf_copy = uf.clone();
-
-        contract(&mut uf_copy, edges, t);
-        let (min_cut1, size1) = karger_min_cut(&mut uf_copy, edges);
-        if min_cut1 == 3 {
-            return (min_cut1, size1);
-        }
-
-        contract(uf, edges, t);
-        let (min_cut2, size2) = karger_min_cut(uf, edges);
-
-        if min_cut1 < min_cut2 {
-            return (min_cut1, size1);
-        } else {
-            return (min_cut2, size2);
-        }
-    }
+    contract(uf, edges, 2);
 
     let min_cut = edges
         .iter()
