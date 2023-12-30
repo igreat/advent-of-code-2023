@@ -1,9 +1,8 @@
-use std::collections::HashMap;
+use rustc_hash::FxHashMap;
 
 pub fn run(input: &str) -> usize {
     let mut dish = parse_input(input);
-
-    let mut dish_cycles = HashMap::new();
+    let mut dish_cycles = FxHashMap::default();
     let mut cycle_num = 0;
     loop {
         cycle_num += 1;
@@ -14,8 +13,7 @@ pub fn run(input: &str) -> usize {
             for _ in 0..cycle_num + 1 {
                 cycle(&mut dish);
             }
-            let load = get_load(&dish);
-            return load;
+            return get_load(&dish);
         } else {
             dish_cycles.insert(dish.clone(), cycle_num);
         }
