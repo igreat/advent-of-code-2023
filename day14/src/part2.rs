@@ -9,8 +9,8 @@ pub fn run(input: &str) -> usize {
         cycle(&mut dish);
         if dish_cycles.contains_key(&dish) {
             let cycle_len = cycle_num - dish_cycles[&dish];
-            let cycle_num = (1_000_000_000 - cycle_num - 1) % cycle_len;
-            for _ in 0..cycle_num + 1 {
+            let cycle_num = (1_000_000_000 - cycle_num) % cycle_len;
+            for _ in 0..cycle_num {
                 cycle(&mut dish);
             }
             return get_load(&dish);
