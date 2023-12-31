@@ -2,20 +2,51 @@ use rustc_hash::FxHashMap;
 
 pub fn run(input: &str) -> usize {
     let mut dish = parse_input(input);
+    hashmap_cycle_detection(&mut dish)
+}
+
+fn hashmap_cycle_detection(dish: &mut Vec<Vec<u8>>) -> usize {
     let mut dish_cycles = FxHashMap::default();
     let mut cycle_num = 0;
     loop {
         cycle_num += 1;
-        cycle(&mut dish);
-        if dish_cycles.contains_key(&dish) {
-            let cycle_len = cycle_num - dish_cycles[&dish];
+        cycle(dish);
+        if dish_cycles.contains_key(dish) {
+            let cycle_len = cycle_num - dish_cycles[dish];
             let cycle_num = (1_000_000_000 - cycle_num) % cycle_len;
             for _ in 0..cycle_num {
-                cycle(&mut dish);
+                cycle(dish);
             }
-            return get_load(&dish);
+            return get_load(dish);
         } else {
             dish_cycles.insert(dish.clone(), cycle_num);
+        }
+    }
+}
+
+fn floyd_cycle_detection(dish: &mut Vec<Vec<u8>>) -> usize {
+    let mut slow = dish.clone();
+    let mut fast = dish.clone();
+    let mut cycle_num = 0;
+    loop {
+        cycle_num += 1;
+        cycle(&mut slow);
+        cycle(&mut fast);
+        cycle(&mut fast);
+        if slow == fast {
+            let mut cycle_len = 0;
+            loop {
+                cycle_len += 1;
+                cycle(&mut slow);
+                if slow == fast {
+                    break;
+                }
+            }
+            let cycle_num = (1_000_000_000 - cycle_num) % cycle_len;
+            for _ in 0..cycle_num {
+                cycle(&mut slow);
+            }
+            return get_load(&slow);
         }
     }
 }
