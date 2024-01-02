@@ -10,17 +10,17 @@ pub fn run(input: &str) -> usize {
     let mut prev_y;
     let mut length = 0;
 
-    for instruction in instructions {
+    for Instruction { direction, count } in instructions {
         prev_x = x;
         prev_y = y;
 
-        match instruction.direction {
-            Direction::Up => y -= (instruction.count) as i32,
-            Direction::Down => y += (instruction.count) as i32,
-            Direction::Left => x -= (instruction.count) as i32,
-            Direction::Right => x += (instruction.count) as i32,
+        match direction {
+            Direction::Up => y -= count as i32,
+            Direction::Down => y += count as i32,
+            Direction::Left => x -= count as i32,
+            Direction::Right => x += count as i32,
         }
-        length += instruction.count;
+        length += count;
         area += det(prev_x, prev_y, x, y);
     }
 
