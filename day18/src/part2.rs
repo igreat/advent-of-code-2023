@@ -24,7 +24,7 @@ pub fn run(input: &str) -> usize {
         area += det(prev_x, prev_y, x, y);
     }
 
-    ((area + length as i64) / 2).abs() as usize + 1
+    ((area.abs() + length as i64) / 2) as usize + 1
 }
 
 fn det(x1: i64, y1: i64, x2: i64, y2: i64) -> i64 {
