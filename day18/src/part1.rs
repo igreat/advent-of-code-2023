@@ -6,8 +6,8 @@ pub fn run(input: &str) -> usize {
 
     let mut area = 0;
 
-    let mut prev_x = 0;
-    let mut prev_y = 0;
+    let mut prev_x;
+    let mut prev_y;
     let mut length = 0;
 
     for instruction in instructions {
@@ -24,7 +24,6 @@ pub fn run(input: &str) -> usize {
         area += det(prev_x, prev_y, x, y);
     }
 
-    area += det(prev_x, prev_y, 0, 0);
     ((area + length as i32) / 2).abs() as usize + 1
 }
 
