@@ -65,12 +65,6 @@ fn min_heat(grid: &Vec<Vec<usize>>) -> usize {
     }) = heap.pop()
     {
         if (x, y) == (grid[0].len() - 1, grid.len() - 1) {
-            // for (row_h, row_v) in min_heats[0].iter().zip(min_heats[1].iter()) {
-            //     for (h, v) in row_h.iter().zip(row_v.iter()) {
-            //         print!("{:4} ", std::cmp::min(h, v));
-            //     }
-            //     println!();
-            // }
             return heat;
         }
 
