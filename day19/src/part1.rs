@@ -10,10 +10,7 @@ pub fn run(input: &str) -> usize {
             let rules = rules.get(&rule_id).unwrap();
             for rule in rules {
                 let mut is_valid = true;
-                if rule.category.is_some() {
-                    let category = rule.category.as_ref().unwrap();
-                    let condition = rule.condition.as_ref().unwrap();
-
+                if let (Some(category), Some(condition)) = (&rule.category, &rule.condition) {
                     let value = match category {
                         Category::X => part.x,
                         Category::M => part.m,
