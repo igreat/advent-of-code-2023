@@ -6,13 +6,13 @@ pub fn run(input: &str) -> usize {
     let mut modules = parse_input(input);
 
     let (mut low_pulses, mut high_pulses) = (0, 0);
+    // contains (sender, reciever, signal)
     let mut messages = VecDeque::new();
 
     let num_iterations = 1000;
     for _ in 0..num_iterations {
         low_pulses += 1; // pressing the button
 
-        // let contains (sender, reciever, signal)
         messages.push_back(("", "broadcaster", false));
         while !messages.is_empty() {
             let (sender, receiver, signal) = messages.pop_front().unwrap();
@@ -21,12 +21,12 @@ pub fn run(input: &str) -> usize {
             if !modules.contains_key(receiver) {
                 continue;
             }
-
             let module_map = modules.get_mut(receiver).unwrap();
             // push outputs to queue
             send_signals(
                 module_map,
                 sender,
+                receiver,
                 signal,
                 &mut messages,
                 &mut high_pulses,
@@ -41,6 +41,7 @@ pub fn run(input: &str) -> usize {
 fn send_signals<'a>(
     module_map: &mut ModuleMap<'a>,
     sender: &'a str,
+    receiver: &'a str,
     signal: bool,
     messages: &mut VecDeque<(&'a str, &'a str, bool)>,
     high_pulses: &mut usize,
@@ -56,7 +57,7 @@ fn send_signals<'a>(
                     *low_pulses += 1;
                 }
 
-                messages.push_back((sender, output, signal));
+                messages.push_back((receiver, output, signal));
             }
         }
         Module::FlipFlop(ref mut state) => {
@@ -70,7 +71,7 @@ fn send_signals<'a>(
                         *low_pulses += 1;
                     }
 
-                    messages.push_back((sender, output, *state));
+                    messages.push_back((receiver, output, *state));
                 }
             }
         }
@@ -87,7 +88,7 @@ fn send_signals<'a>(
                     *low_pulses += 1;
                 }
 
-                messages.push_back((sender, output, !all_high));
+                messages.push_back((receiver, output, !all_high));
             }
         }
     }
