@@ -6,72 +6,91 @@ pub fn run(input: &str) -> usize {
     let mut modules = parse_input(input);
 
     let (mut low_pulses, mut high_pulses) = (0, 0);
-    let mut current_ids = VecDeque::new();
+    let mut messages = VecDeque::new();
 
     let num_iterations = 1000;
     for _ in 0..num_iterations {
         low_pulses += 1; // pressing the button
 
         // let contains (sender, reciever, signal)
-        current_ids.push_back(("", "broadcaster", false));
-        while !current_ids.is_empty() {
-            let (sender, receiver, signal) = current_ids.pop_front().unwrap();
+        messages.push_back(("", "broadcaster", false));
+        while !messages.is_empty() {
+            let (sender, receiver, signal) = messages.pop_front().unwrap();
 
             // if id not in modules, continue
             if !modules.contains_key(receiver) {
                 continue;
             }
 
+            let module_map = modules.get_mut(receiver).unwrap();
             // push outputs to queue
-            let ModuleMap { module, outputs } = modules.get_mut(receiver).unwrap();
-            match module {
-                Module::Broadcaster => {
-                    for output in outputs {
-                        if signal {
-                            high_pulses += 1;
-                        } else {
-                            low_pulses += 1;
-                        }
-
-                        current_ids.push_back((receiver, output, signal));
-                    }
-                }
-                Module::FlipFlop(ref mut state) => {
-                    if !signal {
-                        // flip the state
-                        *state = !*state;
-                        for output in outputs {
-                            if *state {
-                                high_pulses += 1;
-                            } else {
-                                low_pulses += 1;
-                            }
-
-                            current_ids.push_back((receiver, output, *state));
-                        }
-                    }
-                }
-                Module::Conjunction(map) => {
-                    // update map
-                    map.insert(sender, signal);
-
-                    // check if all signals are high
-                    let all_high = map.values().all(|&v| v);
-                    for output in outputs {
-                        if !all_high {
-                            high_pulses += 1;
-                        } else {
-                            low_pulses += 1;
-                        }
-
-                        current_ids.push_back((receiver, output, !all_high));
-                    }
-                }
-            }
+            send_signals(
+                module_map,
+                sender,
+                signal,
+                &mut messages,
+                &mut high_pulses,
+                &mut low_pulses,
+            );
         }
     }
 
     low_pulses * high_pulses
+}
+
+fn send_signals<'a>(
+    module_map: &mut ModuleMap<'a>,
+    sender: &'a str,
+    signal: bool,
+    messages: &mut VecDeque<(&'a str, &'a str, bool)>,
+    high_pulses: &mut usize,
+    low_pulses: &mut usize,
+) {
+    let ModuleMap { module, outputs } = module_map;
+    match module {
+        Module::Broadcaster => {
+            for output in outputs {
+                if signal {
+                    *high_pulses += 1;
+                } else {
+                    *low_pulses += 1;
+                }
+
+                messages.push_back((sender, output, signal));
+            }
+        }
+        Module::FlipFlop(ref mut state) => {
+            if !signal {
+                // flip the state
+                *state = !*state;
+                for output in outputs {
+                    if *state {
+                        *high_pulses += 1;
+                    } else {
+                        *low_pulses += 1;
+                    }
+
+                    messages.push_back((sender, output, *state));
+                }
+            }
+        }
+        Module::Conjunction(map) => {
+            // update map
+            map.insert(sender, signal);
+
+            // check if all signals are high
+            let all_high = map.values().all(|&v| v);
+            for output in outputs {
+                if !all_high {
+                    *high_pulses += 1;
+                } else {
+                    *low_pulses += 1;
+                }
+
+                messages.push_back((sender, output, !all_high));
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
