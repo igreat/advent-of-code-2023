@@ -1,7 +1,5 @@
 use std::collections::{HashMap, VecDeque};
 
-// todo: be wary of cycles
-
 pub fn run(input: &str) -> usize {
     let mut modules = parse_input(input);
 
@@ -51,10 +49,9 @@ fn send_signals<'a>(
     match module {
         Module::Broadcaster => {
             for output in outputs {
-                if signal {
-                    *high_pulses += 1;
-                } else {
-                    *low_pulses += 1;
+                match signal {
+                    true => *high_pulses += 1,
+                    false => *low_pulses += 1,
                 }
 
                 messages.push_back((receiver, output, signal));
@@ -65,10 +62,9 @@ fn send_signals<'a>(
                 // flip the state
                 *state = !*state;
                 for output in outputs {
-                    if *state {
-                        *high_pulses += 1;
-                    } else {
-                        *low_pulses += 1;
+                    match *state {
+                        true => *high_pulses += 1,
+                        false => *low_pulses += 1,
                     }
 
                     messages.push_back((receiver, output, *state));
@@ -82,10 +78,9 @@ fn send_signals<'a>(
             // check if all signals are high
             let all_high = map.values().all(|&v| v);
             for output in outputs {
-                if !all_high {
-                    *high_pulses += 1;
-                } else {
-                    *low_pulses += 1;
+                match !all_high {
+                    true => *high_pulses += 1,
+                    false => *low_pulses += 1,
                 }
 
                 messages.push_back((receiver, output, !all_high));
@@ -131,11 +126,13 @@ fn parse_input(input: &str) -> HashMap<&str, ModuleMap> {
 
     // I have to copy :(
     for (id, module) in modules.clone().iter_mut() {
-        if let Module::FlipFlop(_) = module.module {
-            for output in &module.outputs {
-                if let Module::Conjunction(map) = &mut modules.get_mut(output).unwrap().module {
-                    map.insert(id, false);
-                }
+        for output in &module.outputs {
+            if let Some(ModuleMap {
+                module: Module::Conjunction(map),
+                ..
+            }) = &mut modules.get_mut(output)
+            {
+                map.insert(id, false);
             }
         }
     }
