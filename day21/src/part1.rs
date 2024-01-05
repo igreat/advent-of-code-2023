@@ -25,14 +25,7 @@ fn bfs(grid: &Vec<Vec<u8>>, x: usize, y: usize, steps: usize) -> usize {
         }
 
         visited[y][x] = true;
-        for (dx, dy) in &[(0, -1), (1, 0), (0, 1), (-1, 0)] {
-            let nx = x as i32 + dx;
-            let ny = y as i32 + dy;
-            if nx < 0 || nx >= grid[0].len() as i32 || ny < 0 || ny >= grid.len() as i32 {
-                continue;
-            }
-            let nx = nx as usize;
-            let ny = ny as usize;
+        for (nx, ny) in neighbors(&grid, x, y) {
             if grid[ny][nx] != b'#' {
                 queue.push_back((nx, ny, distance + 1));
             }
@@ -40,6 +33,16 @@ fn bfs(grid: &Vec<Vec<u8>>, x: usize, y: usize, steps: usize) -> usize {
     }
 
     visited.iter().flatten().filter(|&&cell| cell).count()
+}
+
+fn neighbors(grid: &Vec<Vec<u8>>, x: usize, y: usize) -> Vec<(usize, usize)> {
+    [(x, y - 1), (x + 1, y), (x, y + 1), (x - 1, y)]
+        .iter()
+        .filter(|&&(nx, ny)| {
+            nx < grid[0].len() && ny < grid.len() && grid[ny][nx] != b'#' && grid[ny][nx] != b' '
+        })
+        .map(|&p| p)
+        .collect()
 }
 
 fn parse_input(input: &str) -> Vec<Vec<u8>> {
